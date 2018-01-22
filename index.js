@@ -1,4 +1,6 @@
 var express = require('express')
+var Handlebars = require('handlebars');
+var fs=require('fs')
 var app = express()
 var mysql=require('mysql')
 
@@ -11,6 +13,7 @@ var sql=mysql.createConnection({
 
 })
 
+var path=__dirname+"/views"
 
 var exec=function(sql_str,callback){
 
@@ -38,9 +41,30 @@ sql.connect(function(err){
 app.set('port', (process.env.PORT || 5000))
 app.use(express.static(__dirname + '/public'))
 
-app.get('/', function(request, response) {
-  response.send('Hello World!')
-})
+/**********************/
+
+let compilehtml=function(source,data){
+
+  if(source==null)
+      source = "<p>Hello, my name is {{name}}. I am from {{hometown}}. I have " +
+      "{{kids.length}} kids:</p>" +
+      "<ul>{{#kids}}<li>{{name}} is {{age}}</li>{{/kids}}</ul>";
+
+
+  if(data==null)
+      data = { "name": "Alan", "hometown": "Somewhere, TX",
+      "kids": [{"name": "Jimmy", "age": "12"}, {"name": "Sally", "age": "4"}]};
+
+      var template = Handlebars.compile(source);
+      var result = template(data);
+      return  result;
+
+}
+
+
+
+
+
 
 app.get('/', function(request, response) {
   console.log('HTTP Call Triggred !')
@@ -63,6 +87,48 @@ app.get('/sql',function(req,resp){
     }
 })
 
+app.all('/kids',function(req,res){
+
+
+    var source = "<p>Hello, my name is {{name}}. I am from {{hometown}}. I have " +
+        "{{kids.length}} kids:</p>" +
+        "<ul>{{#kids}}<li>{{name}} is {{age}}</li>{{/kids}}</ul>";
+    var template = Handlebars.compile(source);
+
+    var data = { "name": "Alan", "hometown": "Somewhere, TX",
+        "kids": [{"name": "Jimmy", "age": "12"}, {"name": "Sally", "age": "4"}]};
+    var result = template(data);
+
+    res.send(result);
+
+})
+
+
+
+app.get('/get_conf',function(req,resp){
+  
+    console.log("Configuration Requested : "+req)  
+    resp.setHeader('content-type', 'application/json');
+  
+    resp.json({
+      id:"IOT183E3",
+      ap_ssid:"MONG_TEST",
+      ap_pass:"password",
+      sta_ssid:"jarvis",
+      sta_pass:"goforit@delhi"
+    })
+  
+})
+
+app.get('/test',function(req,res){
+
+  var html_test=fs.readFileSync(path+'/empty/test.html')
+  res.sendFile(compilehtml(html_test))
+
+})
+
+
 app.listen(app.get('port'), function() {
   console.log("Node app is running at localhost:" + app.get('port'))
 })
+ 
